@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+.idea
+.handler-saves
+test_db.sqlite3
+TODO.txt
