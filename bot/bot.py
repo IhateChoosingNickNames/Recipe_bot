@@ -19,8 +19,7 @@ bot = telebot.TeleBot(SECRET_KEY)
 
 
 commands = ["/get_recipe", "/add_recipe", "/menu", "/start", "/get_random_recipe", "/my_recipes"]
-recipe = {"params": None}
-
+res = {"get": True, "category": None, "type_": None, "amount": None, "title": None, "text": None}
 
 def start_bot():
     bot.enable_save_next_step_handlers(delay=2)
@@ -55,76 +54,6 @@ def bot_get_random_recipe(request):
     bot.send_message(request.chat.id, f'{rnd_recipe.text}', parse_mode='HTML')
 
 
-@bot.message_handler(commands=['get_recipe'])
-def bot_get_recipe(request, show=True):
-    """Функция получения рецентов."""
-    bot.delete_message(request.chat.id, request.message_id)
-    params = request.text.replace('/get_recipe', '').lstrip()
-
-    if params != "":
-        try:
-            parsed = parse_input(params)
-        except WrongInputError:
-            bot.send_message(request.chat.id, "Введены некорретные данные")
-        else:
-            result = get_recipe(parsed)
-            show_result(bot, result, request)
-    else:
-        sent = bot.send_message(request.chat.id, f'Укажите <b>категорию</b>(обязательно), <b>тип</b>(опционально), <b>количество</b>(опционально) через звездочку. Пример: <b>супы*сырный суп*5</b>', parse_mode='HTML')
-
-        show_available_cats_and_types(bot, request)
-
-        bot.register_next_step_handler(sent, get_recipe)
-
-
-@bot.message_handler(commands=['add_recipe'])
-def bot_add_recipe(request):
-    """Функция добавления рецентов."""
-    bot.delete_message(request.chat.id, request.message_id)
-    sent = bot.send_message(request.chat.id, f'Введите <b>категорию</b>, <b>тип</b>, <b>название</b> через звездочку. Все поля обязательные. Пример: <b>супы*сырный суп*название супа</b>', parse_mode='HTML')
-    show_available_cats_and_types(bot, request)
-    bot.register_next_step_handler(sent, bot_params_maker)
-
-
-def bot_params_maker(request):
-    """Функция получения параметров для рецепта."""
-    recipe["params"] = request.text
-    sent = bot.send_message(request.chat.id, f'Загрузите картинку:', parse_mode='HTML')
-    bot.register_next_step_handler(sent, bot_get_photo)
-
-
-def bot_get_photo(request):
-    url = f"https://api.telegram.org/bot{SECRET_KEY}/getFile?file_id={request.photo[-1].file_id}"
-
-    res = requests.get(url)
-
-    file_path = json.loads(res.content)["result"]["file_path"]
-
-    template = f"https://api.telegram.org/file/bot{SECRET_KEY}/{file_path}"
-
-    res = requests.get(template)
-
-    with open("tmp.png", "wb") as file:
-        file.write(res.content)
-
-    sent = bot.send_message(request.chat.id, f'Введите рецепт:', parse_mode='HTML')
-    bot.register_next_step_handler(sent, bot_recipe_maker)
-
-def bot_recipe_maker(self):
-    """Функция создания рецентов."""
-
-    try:
-        parsed = parse_input(recipe["params"])
-    except WrongInputError:
-        bot.send_message(self.chat.id, "Введены некорретные данные")
-    else:
-        parsed["text"] = self.text
-        parsed["author"] = validate_author_fields({"username": self.from_user.username, "first_name": self.from_user.first_name, "last_name": self.from_user.last_name})
-        try:
-            res = add_recipe(parsed)
-            bot.send_message(self.chat.id, f'Рецепт успешно создан!', parse_mode='HTML')
-        except WrongInputError:
-            bot.send_message(self.chat.id, f'Введены некорретные данные.', parse_mode='HTML')
 
 
 @bot.message_handler(commands=['menu'])
@@ -136,13 +65,87 @@ def bot_menu(request):
     bot.send_message(request.chat.id, 'Доступные команды:', reply_markup=kb)
 
 
+
+
+@bot.message_handler(commands=['get_recipe', 'add_recipe'])
+def bot_choose_type(request):
+    if request.text != "/get_recipe":
+        res["get"] = False
+    bot.delete_message(request.chat.id, request.message_id)
+    types_ = get_types()
+    keyboard = types.InlineKeyboardMarkup()
+    for elem in types_:
+        button = types.InlineKeyboardButton(f"{elem.title}", callback_data=f"{elem.title}")
+        keyboard.add(button)
+
+    bot.send_message(request.chat.id, text="Выберите тип:", reply_markup=keyboard)
+
+
+@bot.callback_query_handler(func=lambda call: res["type_"] is None)
+def bot_choose_cat(call):
+    res["type_"] = call.data
+    types_ = get_categories()
+    keyboard = types.InlineKeyboardMarkup()
+    for elem in types_:
+        button = types.InlineKeyboardButton(f"{elem.title}", callback_data=f"{elem.title}")
+        keyboard.add(button)
+
+    bot.send_message(call.json["message"]["chat"]["id"], text="Выберите категорию:", reply_markup=keyboard)
+
+
+@bot.callback_query_handler(func=lambda call: res["category"] is None)
+def bot_set_amount(call):
+    res["category"] = call.data
+    if res["get"]:
+        sent = bot.send_message(call.json["message"]["chat"]["id"], f'Введите количество рецептов:', parse_mode='HTML')
+        bot.register_next_step_handler(sent, bot_get_recipes)
+    else:
+        sent = bot.send_message(call.json["message"]["chat"]["id"], f'Введите название рецепта:', parse_mode='HTML')
+        bot.register_next_step_handler(sent, bot_set_title)
+
+
+def bot_get_recipes(request):
+    res["amount"] = int(request.text)
+    result = get_recipe(res)
+    show_result(bot, result, request)
+
+
+def bot_set_title(request):
+    res["title"] = request.text
+    sent = bot.send_message(request.chat.id, f'Введите рецепт:', parse_mode='HTML')
+    bot.register_next_step_handler(sent, bot_add_recipe)
+
+
+def bot_add_recipe(request):
+    res["text"] = request.text
+    res["author"] = {
+        "username": request.from_user.username,
+        "first_name": request.from_user.first_name,
+        "last_name": request.from_user.last_name
+    }
+    add_recipe(res)
+    bot.send_message(request.chat.id, "Рецепт успешно добавлен!")
+
+
 @bot.message_handler(func=lambda x: x not in commands)
 def bot_wrong(request):
     """Функция ответа на некорретно введенную команду."""
     bot.reply_to(request, 'Введена некорретная команда.')
 
 
-
-
-if __name__ == '__main__':
-    start_bot()
+# def bot_get_photo(request):
+#     url = f"https://api.telegram.org/bot{SECRET_KEY}/getFile?file_id={request.photo[-1].file_id}"
+#
+#     res = requests.get(url)
+#
+#     file_path = json.loads(res.content)["result"]["file_path"]
+#
+#     template = f"https://api.telegram.org/file/bot{SECRET_KEY}/{file_path}"
+#
+#     res = requests.get(template)
+#
+#     with open("tmp.png", "wb") as file:
+#         file.write(res.content)
+#
+#     sent = bot.send_message(request.chat.id, f'Введите рецепт:', parse_mode='HTML')
+#     bot.register_next_step_handler(sent, bot_recipe_maker)
