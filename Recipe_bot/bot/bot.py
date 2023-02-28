@@ -1,9 +1,9 @@
 import telebot
 from telebot import types
 
-from Recipe_bot.recipes.queries import (add_recipe, get_categories, get_my_recipes,
-                                        get_random_recipe, get_recipes, get_types)
-from Recipe_bot.settings import TOKEN
+from recipes.queries import (add_recipe, get_categories, get_my_recipes,
+                             get_random_recipe, get_recipes, get_types)
+from settings import TOKEN
 
 from .help_stuff import show_result
 

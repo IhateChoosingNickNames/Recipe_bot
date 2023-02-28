@@ -1,7 +1,7 @@
 import datetime
 
-from Recipe_bot.recipes.exceptions import WrongInputError
-from Recipe_bot.recipes.queries import get_categories, get_types
+from recipes.exceptions import WrongInputError
+from recipes.queries import get_categories, get_types
 
 TIME_OUT = {"last_time_called": None, "delay": datetime.timedelta(seconds=30)}
 

@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-from Recipe_bot.settings import (DB_ENGINE, DB_HOST, DB_NAME, DB_PORT, POSTGRES_PASSWORD,
+from settings import (DB_ENGINE, DB_HOST, DB_NAME, DB_PORT, POSTGRES_PASSWORD,
                                  POSTGRES_USER)
 
 

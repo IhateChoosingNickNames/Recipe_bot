@@ -1,6 +1,6 @@
-from Recipe_bot.recipes.base import engine, get_session
-from Recipe_bot.recipes.models import Base, Category, Recipe, Type, User
-from Recipe_bot.settings import DATA_FILE
+from recipes.base import engine, get_session
+from recipes.models import Base, Category, Recipe, Type, User
+from settings import DATA_FILE
 
 
 def create_db():
