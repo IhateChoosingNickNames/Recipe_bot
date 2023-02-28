@@ -18,22 +18,25 @@ Features:
     - You can add new recipe in existing category/type
     - You can view list of your
     - You can get random recipe
-    - You can prepopulate DB(sqlite3 for now) with JSON-file
+    - You can prepopulate DB with JSON-file
 
 Instructions:
-
+-
 ## enviroment:
 Create .env file in root directory and fill it with required keys:
-### Postgres's comming soon
-- SECRET_KEY=...
+
+### Bot token is requiered to launch:
+- TG_BOT=...
+### Postgres settings:
 - DB_ENGINE=...
 - DB_NAME=...
 - POSTGRES_USER=...
 - POSTGRES_PASSWORD=...
-- DB_HOST=db
-- DB_PORT=5432
-### Bot token is requiered to launch:
-TG_BOT=...
+- DB_HOST=...
+- DB_PORT=...
+### Path to json-file for populating DB:
+- DATA=...
+
 
 ## Local launch:
 

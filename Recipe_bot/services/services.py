@@ -1,23 +1,20 @@
-from sqlalchemy import create_engine
-from .models import Base, Recipe, User, Category, Type
-from sqlalchemy.orm import sessionmaker
+from recipes.base import engine, get_session
+from recipes.models import Base, Category, Recipe, Type, User
+from settings import DATA_FILE
 
 
 def create_db():
-    engine = create_engine("sqlite:///test_db.sqlite3")
     Base.metadata.create_all(bind=engine)
 
 
 def populate_db():
-    import json
     import datetime
-    engine = create_engine("sqlite:///test_db.sqlite3")
+    import json
 
-    with open("static/data/test_data.json", encoding="UTF-8") as file:
+    with open(DATA_FILE, encoding="UTF-8") as file:
         test_data = json.load(file)
 
-    session = sessionmaker(bind=engine)
-    current_session = session()
+    current_session = get_session(engine)
 
     schema = {
         "Users": User,
@@ -30,8 +27,10 @@ def populate_db():
         curr_model = schema[modelname]
         for elem in objects:
             if modelname == "Recipes":
-                elem["pub_date"] = datetime.datetime.fromisoformat(elem["pub_date"])
-                print(elem["pub_date"])
+                elem["pub_date"] = datetime.datetime.fromisoformat(
+                    elem["pub_date"]
+                )
             to_commit = curr_model(**elem)
             current_session.add(to_commit)
+
     current_session.commit()
