@@ -1,3 +1,6 @@
+# Simple scrip to make json-file from existing DB
+
+import json
 import sqlite3
 
 con = sqlite3.connect("db.sqlite3")
@@ -56,7 +59,6 @@ for table in lst:
         tmp = dict(zip(mapper[curr_model].keys(), row))
         result[curr_model].append(tmp)
 
-import json
 
 print(result["Types"])
 

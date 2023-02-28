@@ -1,14 +1,14 @@
 import sys
-from recipes import services
-from bot import bot
-from recipes.exceptions import WrongInputError
 
+from Recipe_bot.bot import bot
+from Recipe_bot.recipes import WrongInputError
+from Recipe_bot.services import services
 
 commands_db = ["create_db", "populate_db"]
 commands_bot = ["start_bot"]
 
-def main():
 
+def main():
     try:
         command = sys.argv[1]
     except IndexError:
@@ -22,5 +22,5 @@ def main():
             raise WrongInputError("Введена некорретная команда")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

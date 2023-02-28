@@ -1,11 +1,8 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
-from sqlalchemy.orm import DeclarativeBase, relationship
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
-
-
-class Base(DeclarativeBase):
-    pass
+from .base import Base
 
 
 class Recipe(Base):
@@ -23,7 +20,9 @@ class Recipe(Base):
     author = relationship("User", foreign_keys="Recipe.author_id")
 
     def __repr__(self):
-        return f"id={self.id!r}, title={self.title[:15]!r}, author={self.author.username!r}"
+        return (f"id={self.id!r}, title={self.title[:15]!r}, "
+                f"author={self.author.username!r}")
+
 
 class User(Base):
     __tablename__ = "Users"
@@ -34,7 +33,6 @@ class User(Base):
     last_name = Column(String(100), nullable=True)
     email = Column(String(100), nullable=True)
     recipe = relationship("Recipe", back_populates="author")
-
 
     def __repr__(self):
         return f"id={self.id!r}, username={self.username[:15]!r}"
