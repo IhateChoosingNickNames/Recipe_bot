@@ -1,3 +1,5 @@
+from recipes.queries import get_user
+
 commands = [
     "/get_recipe",
     "/add_recipe",
@@ -28,6 +30,7 @@ def correct_author_fields(initial_data):
 
 def show_result(bot, result, request):
     """Отправка результата в чат."""
+
     if result.count() > 0:
         for index, elem in enumerate(result):
             bot.send_message(
@@ -71,3 +74,18 @@ def is_command(data):
         if data.startswith(elem):
             return True
     return False
+
+
+def is_admin(bot, request):
+    data = {
+        "username": request.from_user.username,
+        "first_name": request.from_user.first_name,
+        "last_name": request.from_user.last_name,
+    }
+    user = get_user(correct_author_fields(data))
+    bot.delete_message(request.chat.id, request.message_id)
+
+    if not user.is_admin:
+        return False
+
+    return True

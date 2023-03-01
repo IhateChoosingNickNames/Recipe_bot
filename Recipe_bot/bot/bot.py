@@ -1,13 +1,13 @@
 import telebot
 from telebot import types
 
-from recipes.queries import (add_recipe, get_categories, get_my_recipes,
-                             get_random_recipe, get_recipes, get_types,
-                             get_user)
+from recipes.queries import (add_recipe, create_type_or_category,
+                             get_categories, get_my_recipes, get_random_recipe,
+                             get_recipes, get_types)
 from settings import TOKEN
 
-from .utils import (DATA, clear, commands, correct_author_fields, is_command,
-                    show_result)
+from .utils import (DATA, clear, commands, correct_author_fields, is_admin,
+                    is_command, show_result)
 
 bot = telebot.TeleBot(TOKEN)
 
@@ -195,9 +195,50 @@ def bot_add_recipe(request):
     clear(DATA)
 
 
+@bot.message_handler(commands=["admin"])
+def test(request):
+    """Вход в админку."""
+
+    if not is_admin(bot, request):
+        bot.send_message(request.chat.id, "У вас нет прав администратора.")
+        return
+
+    cmds = ["/add_category", "/add_type"]
+    kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=4)
+    kb.add(*[types.KeyboardButton(text=elem) for elem in cmds])
+    bot.send_message(request.chat.id, "Доступные команды:", reply_markup=kb)
+
+
+@bot.message_handler(commands=["add_category", "add_type"])
+def admin(request):
+    """Вывод действия для админа."""
+    if request.text.startswith("/add_type"):
+        DATA["is_type"] = True
+    else:
+        DATA["is_type"] = False
+
+    bot.delete_message(request.chat.id, request.message_id)
+
+    sent = bot.send_message(
+        request.chat.id, "Введите название:", parse_mode="HTML"
+    )
+    bot.register_next_step_handler(sent, bot_create_cat_or_type)
+
+
+def bot_create_cat_or_type(request):
+    """Создание запись названия и запуск создания."""
+    if is_command(request.text):
+        clear(DATA)
+        return
+
+    DATA["title"] = request.text
+    create_type_or_category(DATA)
+    bot.send_message(request.chat.id, "Создано.")
+
+
 @bot.message_handler(func=lambda x: x not in commands)
 def bot_wrong(request):
-    """Буфер - ответ на некорректно введенную команду."""
+    """Отбойник - ответ на некорректно введенную команду."""
     bot.reply_to(request, "Введена некорретная команда.")
 
 

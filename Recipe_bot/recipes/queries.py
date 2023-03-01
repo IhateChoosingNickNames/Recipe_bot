@@ -78,6 +78,7 @@ def get_recipes(data):
         .join(Category)
         .filter(Recipe.category_id == category.id)
         .filter(Recipe.type_id == type_.id)
+        .order_by(Recipe.title)
         .limit(data["amount"])
     )
 
@@ -99,20 +100,19 @@ def get_my_recipes(author):
     return (
         current_session.query(Recipe)
         .filter(Recipe.author_id == user.id)
-        .all()
     )
 
 
 def get_categories():
     """Получение всех категорий."""
     current_session = get_session(engine)
-    return current_session.query(Category).all()
+    return current_session.query(Category).order_by(Category.title).all()
 
 
 def get_types():
     """Получение всех типов."""
     current_session = get_session(engine)
-    return current_session.query(Type).all()
+    return current_session.query(Type).order_by(Type.title).all()
 
 
 def get_user(data):
@@ -120,3 +120,17 @@ def get_user(data):
     current_session = get_session(engine)
     user = get_or_create(current_session, User, **data)
     return user
+
+
+def create_type_or_category(data):
+    """Создание категории или типа."""
+
+    current_session = get_session(engine)
+
+    if data["is_type"]:
+        tmp = Type(title=data["title"])
+    else:
+        tmp = Category(title=data["title"])
+
+    current_session.add(tmp)
+    current_session.commit()
