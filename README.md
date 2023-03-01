@@ -19,6 +19,8 @@ Features:
     - You can view list of your
     - You can get random recipe
     - You can prepopulate DB with JSON-file
+    - Add admins
+    - Admins can now add new types and categories
 
 Instructions:
 -
