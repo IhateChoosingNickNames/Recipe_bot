@@ -4,3 +4,7 @@ class CommandNotFound(Exception):
 
 class WrongInputError(Exception):
     pass
+
+
+class NoRecipesFoundError(Exception):
+    pass

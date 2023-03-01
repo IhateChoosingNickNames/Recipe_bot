@@ -1,56 +1,27 @@
 import telebot
 from telebot import types
 
-from recipes.queries import (add_recipe, get_categories, get_my_recipes,
-                             get_random_recipe, get_recipes, get_types)
+from recipes.queries import (add_recipe, create_type_or_category,
+                             get_categories, get_my_recipes, get_random_recipe,
+                             get_recipes, get_types)
 from settings import TOKEN
 
-from .help_stuff import show_result
+from .utils import (DATA, clear, commands, correct_author_fields, is_admin,
+                    is_command, show_result)
 
 bot = telebot.TeleBot(TOKEN)
 
 
-commands = [
-    "/get_recipe",
-    "/add_recipe",
-    "/menu",
-    "/start",
-    "/get_random_recipe",
-    "/my_recipes",
-]
-
-res = {
-    "get": True,
-    "category": None,
-    "type_": None,
-    "amount": None,
-    "title": None,
-    "text": None,
-}
-
-
 def start_bot():
+    """Инициализация бота."""
     bot.enable_save_next_step_handlers(delay=2)
     bot.load_next_step_handlers()
     bot.infinity_polling()
 
 
-@bot.message_handler(commands=["my_recipes"])
-def bot_my_recipes(request):
-    """Фунция приветствия."""
-    bot.delete_message(request.chat.id, request.message_id)
-    result = get_my_recipes(request.from_user.username)
-    bot.send_message(
-        request.chat.id,
-        f"Вывожу посты пользователя {request.from_user.first_name}!",
-        parse_mode="HTML",
-    )
-    show_result(bot, result, request)
-
-
 @bot.message_handler(commands=["start"])
 def bot_start(request):
-    """Фунция приветствия."""
+    """Приветствия."""
     user = request.from_user.first_name or request.from_user.username
     bot.delete_message(request.chat.id, request.message_id)
     bot.send_message(
@@ -63,8 +34,22 @@ def bot_start(request):
     )
 
 
+@bot.message_handler(commands=["my_recipes"])
+def bot_my_recipes(request):
+    """Вывод рецептов текущего пользователя."""
+    bot.delete_message(request.chat.id, request.message_id)
+    result = get_my_recipes(request.from_user.username)
+    bot.send_message(
+        request.chat.id,
+        f"Вывожу посты пользователя {request.from_user.first_name}!",
+        parse_mode="HTML",
+    )
+    show_result(bot, result, request)
+
+
 @bot.message_handler(commands=["get_random_recipe"])
 def bot_get_random_recipe(request):
+    """Вывод рандомного рецепта."""
     bot.delete_message(request.chat.id, request.message_id)
     rnd_recipe = get_random_recipe()
     bot.send_message(
@@ -84,7 +69,7 @@ def bot_get_random_recipe(request):
 
 @bot.message_handler(commands=["menu"])
 def bot_menu(request):
-    """Функция получения списка доступных команд."""
+    """Отображение меню из доступных команд."""
     bot.delete_message(request.chat.id, request.message_id)
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=4)
     kb.add(*[types.KeyboardButton(text=elem) for elem in commands])
@@ -93,11 +78,19 @@ def bot_menu(request):
 
 @bot.message_handler(commands=["get_recipe", "add_recipe"])
 def bot_choose_type(request):
+    """Запуск логики получения или добавления рецепта.
+    Выводит список всех текущих типов. Пользователь должен
+    будет выбрать один из типов для продолжения.
+
+    Добавлять можно рецепты только в уже имеющиеся категории/типы.
+    """
     if request.text != "/get_recipe":
-        res["get"] = False
+        DATA["get"] = False
+
     bot.delete_message(request.chat.id, request.message_id)
     types_ = get_types()
     keyboard = types.InlineKeyboardMarkup()
+
     for elem in types_:
         button = types.InlineKeyboardButton(
             f"{elem.title}", callback_data=f"{elem.title}"
@@ -109,9 +102,15 @@ def bot_choose_type(request):
     )
 
 
-@bot.callback_query_handler(func=lambda call: res["type_"] is None)
+@bot.callback_query_handler(func=lambda call: DATA["type_"] is None)
 def bot_choose_cat(call):
-    res["type_"] = call.data
+    """Запись полученного ранее типа и вывод категорий."""
+
+    if is_command(call.data):
+        clear(DATA)
+        return
+
+    DATA["type_"] = call.data
     types_ = get_categories()
     keyboard = types.InlineKeyboardMarkup()
     for elem in types_:
@@ -127,10 +126,16 @@ def bot_choose_cat(call):
     )
 
 
-@bot.callback_query_handler(func=lambda call: res["category"] is None)
+@bot.callback_query_handler(func=lambda call: DATA["category"] is None)
 def bot_set_amount(call):
-    res["category"] = call.data
-    if res["get"]:
+    """Запись полученной категории и запрос на ввод кол-ва."""
+    if is_command(call.data):
+        clear(DATA)
+        return
+
+    DATA["category"] = call.data
+
+    if DATA["get"]:
         sent = bot.send_message(
             call.json["message"]["chat"]["id"],
             "Введите количество рецептов:",
@@ -147,13 +152,24 @@ def bot_set_amount(call):
 
 
 def bot_get_recipes(request):
-    res["amount"] = int(request.text)
-    result = get_recipes(res)
+    """Вывод всех рецептов, удовлетворяющих условиям."""
+    if is_command(request.text):
+        clear(DATA)
+        return
+
+    DATA["amount"] = int(request.text)
+    result = get_recipes(DATA)
     show_result(bot, result, request)
+    clear(DATA)
 
 
 def bot_set_title(request):
-    res["title"] = request.text
+    """Запись названия рецепта и запрос на получение текста."""
+    if is_command(request.text):
+        clear(DATA)
+        return
+
+    DATA["title"] = request.text
     sent = bot.send_message(
         request.chat.id, "Введите рецепт:", parse_mode="HTML"
     )
@@ -161,19 +177,68 @@ def bot_set_title(request):
 
 
 def bot_add_recipe(request):
-    res["text"] = request.text
-    res["author"] = {
+    """Запись текста, получение автора и добавления нового рецепта."""
+    if is_command(request.text):
+        clear(DATA)
+        return
+
+    DATA["text"] = request.text
+    DATA["author"] = {
         "username": request.from_user.username,
         "first_name": request.from_user.first_name,
         "last_name": request.from_user.last_name,
     }
-    add_recipe(res)
+    DATA["author"] = correct_author_fields(DATA["author"])
+
+    add_recipe(DATA)
     bot.send_message(request.chat.id, "Рецепт успешно добавлен!")
+    clear(DATA)
+
+
+@bot.message_handler(commands=["admin"])
+def test(request):
+    """Вход в админку."""
+
+    if not is_admin(bot, request):
+        bot.send_message(request.chat.id, "У вас нет прав администратора.")
+        return
+
+    cmds = ["/add_category", "/add_type"]
+    kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=4)
+    kb.add(*[types.KeyboardButton(text=elem) for elem in cmds])
+    bot.send_message(request.chat.id, "Доступные команды:", reply_markup=kb)
+
+
+@bot.message_handler(commands=["add_category", "add_type"])
+def admin(request):
+    """Вывод действия для админа."""
+    if request.text.startswith("/add_type"):
+        DATA["is_type"] = True
+    else:
+        DATA["is_type"] = False
+
+    bot.delete_message(request.chat.id, request.message_id)
+
+    sent = bot.send_message(
+        request.chat.id, "Введите название:", parse_mode="HTML"
+    )
+    bot.register_next_step_handler(sent, bot_create_cat_or_type)
+
+
+def bot_create_cat_or_type(request):
+    """Создание запись названия и запуск создания."""
+    if is_command(request.text):
+        clear(DATA)
+        return
+
+    DATA["title"] = request.text
+    create_type_or_category(DATA)
+    bot.send_message(request.chat.id, "Создано.")
 
 
 @bot.message_handler(func=lambda x: x not in commands)
 def bot_wrong(request):
-    """Функция ответа на некорретно введенную команду."""
+    """Отбойник - ответ на некорректно введенную команду."""
     bot.reply_to(request, "Введена некорретная команда.")
 
 

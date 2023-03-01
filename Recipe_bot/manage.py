@@ -3,12 +3,11 @@ import sys
 from bot import bot
 from recipes.exceptions import WrongInputError
 from services import services
-
-commands_db = ["create_db", "populate_db"]
-commands_bot = ["start_bot"]
+from settings import commands_bot, commands_db
 
 
 def main():
+    """Обработка manage.py команд."""
     try:
         command = sys.argv[1]
     except IndexError:
