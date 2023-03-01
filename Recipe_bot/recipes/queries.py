@@ -1,7 +1,19 @@
 from sqlalchemy.sql import func
 
 from .base import engine, get_session
+from .exceptions import NoRecipesFoundError
 from .models import Category, Recipe, Type, User
+
+
+def get_or_create(session, model, **kwargs):
+    instance = session.query(model).filter_by(**kwargs).first()
+
+    if not instance:
+        instance = model(**kwargs)
+        session.add(instance)
+        session.commit()
+
+    return instance
 
 
 def add_recipe(data):
@@ -27,11 +39,8 @@ def add_recipe(data):
         .filter(Type.title == type_.capitalize())
         .first()
     )
-    author = (
-        current_session.query(User)
-        .filter(User.username == author["username"])
-        .first()
-    )
+    author = get_or_create(current_session, User, username=author["username"])
+
     new_recipe = Recipe(
         category_id=category.id,
         title=title,
@@ -80,13 +89,15 @@ def get_random_recipe():
 def get_my_recipes(author):
     current_session = get_session(engine)
     user = current_session.query(User).filter(User.username == author).first()
-    if user:
-        return (
-            current_session.query(Recipe)
-            .filter(Recipe.author_id == user.id)
-            .all()
-        )
-    return None
+
+    if not user:
+        raise NoRecipesFoundError
+
+    return (
+        current_session.query(Recipe)
+        .filter(Recipe.author_id == user.id)
+        .all()
+    )
 
 
 def get_categories():

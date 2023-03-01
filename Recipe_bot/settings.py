@@ -17,3 +17,7 @@ TOKEN = os.getenv("TG_BOT")
 
 # Data
 DATA_FILE = os.getenv("DATA", default="static/data/test_data.json")
+
+# Manage.py
+commands_db = ["create_db", "populate_db"]
+commands_bot = ["start_bot"]

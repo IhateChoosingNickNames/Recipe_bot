@@ -8,7 +8,7 @@ services:
     environment:
       - POSTGRES_HOST_AUTH_METHOD=trust
     env_file:
-      - .env
+      - ../Recipe_bot/.env
   web:
     build: ../Recipe_bot/
     restart: always
@@ -18,7 +18,7 @@ services:
     depends_on:
       - db
     env_file:
-      - .env
+      - ../Recipe_bot/.env
 
   nginx:
     image: nginx:1.21.3-alpine

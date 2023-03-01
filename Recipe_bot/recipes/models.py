@@ -8,7 +8,7 @@ from .base import Base
 class Recipe(Base):
     __tablename__ = "Recipes"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String(50))
     text = Column(String)
     pub_date = Column(DateTime(timezone=True), server_default=func.now())
@@ -21,13 +21,13 @@ class Recipe(Base):
 
     def __repr__(self):
         return (f"id={self.id!r}, title={self.title[:15]!r}, "
-                f"author={self.author.username!r}")
+                f"author={self.author!r}")
 
 
 class User(Base):
     __tablename__ = "Users"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(String(50))
     first_name = Column(String(100), nullable=True)
     last_name = Column(String(100), nullable=True)
@@ -41,7 +41,7 @@ class User(Base):
 class Category(Base):
     __tablename__ = "Categories"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String(50))
     recipe = relationship("Recipe", back_populates="Category")
 
@@ -52,7 +52,7 @@ class Category(Base):
 class Type(Base):
     __tablename__ = "Types"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String(50))
     recipe = relationship("Recipe", back_populates="Type")
 
