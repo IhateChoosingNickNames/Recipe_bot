@@ -6,7 +6,8 @@ from .models import Category, Recipe, Type, User
 
 
 def get_or_create(session, model, **kwargs):
-    instance = session.query(model).filter_by(**kwargs).first()
+    """Достать пользователя из БД или создать нового."""
+    instance = session.query(model).filter(User.username == kwargs["username"]).first()
 
     if not instance:
         instance = model(**kwargs)
@@ -17,7 +18,7 @@ def get_or_create(session, model, **kwargs):
 
 
 def add_recipe(data):
-    """Добавляет рецепты."""
+    """Добавление рецептов."""
 
     category, type_, title, text, author = (
         data["category"].strip(),
@@ -54,6 +55,7 @@ def add_recipe(data):
 
 def get_recipes(data):
     """Получение нескольких элементов."""
+
     current_session = get_session(engine)
 
     category, type_ = data["category"].strip(), data["type_"].strip()
@@ -81,12 +83,13 @@ def get_recipes(data):
 
 
 def get_random_recipe():
-    """Вывод рандомного элемента"""
+    """Получение рандомного рецепта."""
     current_session = get_session(engine)
     return current_session.query(Recipe).order_by(func.random()).first()
 
 
 def get_my_recipes(author):
+    """Получение рецептов текущего пользователя."""
     current_session = get_session(engine)
     user = current_session.query(User).filter(User.username == author).first()
 
@@ -101,10 +104,19 @@ def get_my_recipes(author):
 
 
 def get_categories():
+    """Получение всех категорий."""
     current_session = get_session(engine)
     return current_session.query(Category).all()
 
 
 def get_types():
+    """Получение всех типов."""
     current_session = get_session(engine)
     return current_session.query(Type).all()
+
+
+def get_user(data):
+    """Получение пользователя."""
+    current_session = get_session(engine)
+    user = get_or_create(current_session, User, **data)
+    return user

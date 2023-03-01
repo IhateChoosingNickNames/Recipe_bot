@@ -7,6 +7,7 @@ from settings import commands_bot, commands_db
 
 
 def main():
+    """Обработка manage.py команд."""
     try:
         command = sys.argv[1]
     except IndexError:

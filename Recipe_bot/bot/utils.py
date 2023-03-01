@@ -18,6 +18,7 @@ DATA = {
 
 
 def correct_author_fields(initial_data):
+    """Удаление пустых ключей."""
     validated_data = {}
     for key, value in initial_data.items():
         if value is not None:
@@ -26,6 +27,7 @@ def correct_author_fields(initial_data):
 
 
 def show_result(bot, result, request):
+    """Отправка результата в чат."""
     if result.count() > 0:
         for index, elem in enumerate(result):
             bot.send_message(

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -6,6 +6,8 @@ from .base import Base
 
 
 class Recipe(Base):
+    """Моделька рецептов."""
+
     __tablename__ = "Recipes"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -25,13 +27,16 @@ class Recipe(Base):
 
 
 class User(Base):
+    """Моделька юзеров."""
+
     __tablename__ = "Users"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    username = Column(String(50))
+    username = Column(String(50), unique=True)
     first_name = Column(String(100), nullable=True)
     last_name = Column(String(100), nullable=True)
     email = Column(String(100), nullable=True)
+    is_admin = Column(Boolean, default=False)
     recipe = relationship("Recipe", back_populates="author")
 
     def __repr__(self):
@@ -39,6 +44,8 @@ class User(Base):
 
 
 class Category(Base):
+    """Моделька категорий."""
+
     __tablename__ = "Categories"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -50,6 +57,8 @@ class Category(Base):
 
 
 class Type(Base):
+    """Моделька типов."""
+
     __tablename__ = "Types"
 
     id = Column(Integer, primary_key=True, autoincrement=True)

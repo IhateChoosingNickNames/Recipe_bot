@@ -2,7 +2,8 @@ import telebot
 from telebot import types
 
 from recipes.queries import (add_recipe, get_categories, get_my_recipes,
-                             get_random_recipe, get_recipes, get_types)
+                             get_random_recipe, get_recipes, get_types,
+                             get_user)
 from settings import TOKEN
 
 from .utils import (DATA, clear, commands, correct_author_fields, is_command,
@@ -11,28 +12,16 @@ from .utils import (DATA, clear, commands, correct_author_fields, is_command,
 bot = telebot.TeleBot(TOKEN)
 
 
-def start_bot(bot):
+def start_bot():
+    """Инициализация бота."""
     bot.enable_save_next_step_handlers(delay=2)
     bot.load_next_step_handlers()
     bot.infinity_polling()
 
 
-@bot.message_handler(commands=["my_recipes"])
-def bot_my_recipes(request):
-    """Фунция приветствия."""
-    bot.delete_message(request.chat.id, request.message_id)
-    result = get_my_recipes(request.from_user.username)
-    bot.send_message(
-        request.chat.id,
-        f"Вывожу посты пользователя {request.from_user.first_name}!",
-        parse_mode="HTML",
-    )
-    show_result(bot, result, request)
-
-
 @bot.message_handler(commands=["start"])
 def bot_start(request):
-    """Фунция приветствия."""
+    """Приветствия."""
     user = request.from_user.first_name or request.from_user.username
     bot.delete_message(request.chat.id, request.message_id)
     bot.send_message(
@@ -45,8 +34,22 @@ def bot_start(request):
     )
 
 
+@bot.message_handler(commands=["my_recipes"])
+def bot_my_recipes(request):
+    """Вывод рецептов текущего пользователя."""
+    bot.delete_message(request.chat.id, request.message_id)
+    result = get_my_recipes(request.from_user.username)
+    bot.send_message(
+        request.chat.id,
+        f"Вывожу посты пользователя {request.from_user.first_name}!",
+        parse_mode="HTML",
+    )
+    show_result(bot, result, request)
+
+
 @bot.message_handler(commands=["get_random_recipe"])
 def bot_get_random_recipe(request):
+    """Вывод рандомного рецепта."""
     bot.delete_message(request.chat.id, request.message_id)
     rnd_recipe = get_random_recipe()
     bot.send_message(
@@ -66,7 +69,7 @@ def bot_get_random_recipe(request):
 
 @bot.message_handler(commands=["menu"])
 def bot_menu(request):
-    """Функция получения списка доступных команд."""
+    """Отображение меню из доступных команд."""
     bot.delete_message(request.chat.id, request.message_id)
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=4)
     kb.add(*[types.KeyboardButton(text=elem) for elem in commands])
@@ -75,6 +78,12 @@ def bot_menu(request):
 
 @bot.message_handler(commands=["get_recipe", "add_recipe"])
 def bot_choose_type(request):
+    """Запуск логики получения или добавления рецепта.
+    Выводит список всех текущих типов. Пользователь должен
+    будет выбрать один из типов для продолжения.
+
+    Добавлять можно рецепты только в уже имеющиеся категории/типы.
+    """
     if request.text != "/get_recipe":
         DATA["get"] = False
 
@@ -95,6 +104,7 @@ def bot_choose_type(request):
 
 @bot.callback_query_handler(func=lambda call: DATA["type_"] is None)
 def bot_choose_cat(call):
+    """Запись полученного ранее типа и вывод категорий."""
 
     if is_command(call.data):
         clear(DATA)
@@ -118,7 +128,7 @@ def bot_choose_cat(call):
 
 @bot.callback_query_handler(func=lambda call: DATA["category"] is None)
 def bot_set_amount(call):
-
+    """Запись полученной категории и запрос на ввод кол-ва."""
     if is_command(call.data):
         clear(DATA)
         return
@@ -142,7 +152,7 @@ def bot_set_amount(call):
 
 
 def bot_get_recipes(request):
-
+    """Вывод всех рецептов, удовлетворяющих условиям."""
     if is_command(request.text):
         clear(DATA)
         return
@@ -154,7 +164,7 @@ def bot_get_recipes(request):
 
 
 def bot_set_title(request):
-
+    """Запись названия рецепта и запрос на получение текста."""
     if is_command(request.text):
         clear(DATA)
         return
@@ -167,7 +177,7 @@ def bot_set_title(request):
 
 
 def bot_add_recipe(request):
-
+    """Запись текста, получение автора и добавления нового рецепта."""
     if is_command(request.text):
         clear(DATA)
         return
@@ -187,7 +197,7 @@ def bot_add_recipe(request):
 
 @bot.message_handler(func=lambda x: x not in commands)
 def bot_wrong(request):
-    """Функция ответа на некорректно введенную команду."""
+    """Буфер - ответ на некорректно введенную команду."""
     bot.reply_to(request, "Введена некорретная команда.")
 
 
