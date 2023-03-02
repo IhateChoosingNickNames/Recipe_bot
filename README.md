@@ -25,7 +25,7 @@ Features:
 Instructions:
 -
 ## enviroment:
-Create .env file in root directory and fill it with required keys:
+Create .env file in root/Recipe_bot directory and fill it with required keys:
 
 ### Bot token is requiered to launch:
 - TG_BOT=...
@@ -34,7 +34,7 @@ Create .env file in root directory and fill it with required keys:
 - DB_NAME=...
 - POSTGRES_USER=...
 - POSTGRES_PASSWORD=...
-- DB_HOST=...
+- DB_HOST=...(use <db> if you want to run this app via docker)
 - DB_PORT=...
 ### Path to json-file for populating DB:
 - DATA=...
@@ -53,7 +53,15 @@ Create .env file in root directory and fill it with required keys:
 
 
 ## Docker:
-### Docker's comming soon
+1. Make docker-build:
+    #### docker-compose up -d --build
+2. Create required tables:
+    #### docker-compose exec web python manage.py create_db
+3. Prepopulate DB with prepared data:
+    ####  docker-compose exec web python manage.py populate_db
+
+
+For now app's ready to use.
 
 
 Examples of comands:
@@ -61,3 +69,4 @@ Examples of comands:
   - /start
   - /menu
   - /get_random_recipe
+  - /admin
