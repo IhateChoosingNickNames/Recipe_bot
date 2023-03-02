@@ -2,12 +2,15 @@ import telebot
 from telebot import types
 
 from recipes.queries import (add_recipe, create_type_or_category,
-                             get_categories, get_my_recipes, get_random_recipe,
-                             get_recipes, get_types)
+                             get_all_categories, get_my_recipes,
+                             get_random_recipe,
+                             get_recipes, get_all_types, get_all_recipes,
+                             delete_object)
 from settings import TOKEN
 
 from .utils import (DATA, clear, commands, correct_author_fields, is_admin,
-                    is_command, show_result)
+                    is_command, show_result, admin_delete_cmds, admin_add_cmds,
+                    ADMIN_DATA)
 
 bot = telebot.TeleBot(TOKEN)
 
@@ -84,11 +87,11 @@ def bot_choose_type(request):
 
     Добавлять можно рецепты только в уже имеющиеся категории/типы.
     """
-    if request.text != "/get_recipe":
-        DATA["get"] = False
+    if request.text == "/get_recipe":
+        DATA["get"] = True
 
     bot.delete_message(request.chat.id, request.message_id)
-    types_ = get_types()
+    types_ = get_all_types()
     keyboard = types.InlineKeyboardMarkup()
 
     for elem in types_:
@@ -102,7 +105,7 @@ def bot_choose_type(request):
     )
 
 
-@bot.callback_query_handler(func=lambda call: DATA["type_"] is None)
+@bot.callback_query_handler(func=lambda call: DATA["type_"] is None and ADMIN_DATA["action"] is None)
 def bot_choose_cat(call):
     """Запись полученного ранее типа и вывод категорий."""
 
@@ -111,7 +114,7 @@ def bot_choose_cat(call):
         return
 
     DATA["type_"] = call.data
-    types_ = get_categories()
+    types_ = get_all_categories()
     keyboard = types.InlineKeyboardMarkup()
     for elem in types_:
         button = types.InlineKeyboardButton(
@@ -126,7 +129,7 @@ def bot_choose_cat(call):
     )
 
 
-@bot.callback_query_handler(func=lambda call: DATA["category"] is None)
+@bot.callback_query_handler(func=lambda call: DATA["category"] is None and ADMIN_DATA["action"] is None)
 def bot_set_amount(call):
     """Запись полученной категории и запрос на ввод кол-ва."""
     if is_command(call.data):
@@ -196,28 +199,32 @@ def bot_add_recipe(request):
 
 
 @bot.message_handler(commands=["admin"])
-def test(request):
+def admin(request):
     """Вход в админку."""
 
     if not is_admin(bot, request):
         bot.send_message(request.chat.id, "У вас нет прав администратора.")
         return
 
-    cmds = ["/add_category", "/add_type"]
+    ADMIN_DATA["action"] = True
+
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=4)
-    kb.add(*[types.KeyboardButton(text=elem) for elem in cmds])
+    kb.add(*[types.KeyboardButton(text=elem) for elem in admin_add_cmds + admin_delete_cmds])
     bot.send_message(request.chat.id, "Доступные команды:", reply_markup=kb)
 
 
 @bot.message_handler(commands=["add_category", "add_type"])
-def admin(request):
+def chooser(request):
     """Вывод действия для админа."""
+
+    if not is_admin(bot, request):
+        bot.send_message(request.chat.id, "У вас нет прав администратора.")
+        return
+
     if request.text.startswith("/add_type"):
         DATA["is_type"] = True
     else:
         DATA["is_type"] = False
-
-    bot.delete_message(request.chat.id, request.message_id)
 
     sent = bot.send_message(
         request.chat.id, "Введите название:", parse_mode="HTML"
@@ -229,15 +236,67 @@ def bot_create_cat_or_type(request):
     """Создание запись названия и запуск создания."""
     if is_command(request.text):
         clear(DATA)
+        clear(ADMIN_DATA)
         return
 
     DATA["title"] = request.text
     create_type_or_category(DATA)
+    clear(DATA)
+    clear(ADMIN_DATA)
     bot.send_message(request.chat.id, "Создано.")
 
 
+@bot.message_handler(commands=["delete_type", "delete_category", "delete_recipe"])
+def deleter(request):
+    """Удаление типа/категории/рецепта."""
+
+    if not is_admin(bot, request):
+        bot.send_message(request.chat.id, "У вас нет прав администратора.")
+        return
+
+    ADMIN_DATA["action"] = True
+    mapper = {
+        "/delete_type": (get_all_types, "Type"),
+        "/delete_category": (get_all_categories, "Category"),
+        "/delete_recipe": (get_all_recipes, "Recipe")
+    }
+
+    objs, model = mapper[request.text]
+    objs = objs()
+    ADMIN_DATA["to_delete_model"] = model
+
+    keyboard = types.InlineKeyboardMarkup()
+    for elem in objs:
+        button = types.InlineKeyboardButton(
+            f"{elem.title[:25]}", callback_data=f"{elem.title[:25]}"
+        )
+        keyboard.add(button)
+
+    bot.send_message(
+        request.chat.id, text="Выберите объект для удаления:", reply_markup=keyboard
+    )
+
+
+@bot.callback_query_handler(func=lambda call: ADMIN_DATA["action"] is not None)
+def delete_caller(call):
+    """Запись полученного ранее типа и вывод категорий."""
+
+    if is_command(call.data):
+        clear(ADMIN_DATA)
+        return
+
+    ADMIN_DATA["action"] = None
+    ADMIN_DATA["to_delete_title"] = call.data
+    delete_object(ADMIN_DATA)
+    clear(ADMIN_DATA)
+    bot.send_message(
+        call.json["message"]["chat"]["id"],
+        "Удалено", parse_mode="HTML"
+    )
+
+
 @bot.message_handler(func=lambda x: x not in commands)
-def bot_wrong(request):
+def bot_wrong_command(request):
     """Отбойник - ответ на некорректно введенную команду."""
     bot.reply_to(request, "Введена некорретная команда.")
 

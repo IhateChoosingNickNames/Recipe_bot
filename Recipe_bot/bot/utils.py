@@ -10,7 +10,7 @@ commands = [
 ]
 
 DATA = {
-    "get": True,
+    "get": None,
     "category": None,
     "type_": None,
     "amount": None,
@@ -18,6 +18,22 @@ DATA = {
     "text": None,
 }
 
+ADMIN_DATA = {
+    "action": None,
+    "to_delete_title": None,
+    "to_delete_model": None
+}
+
+admin_add_cmds = [
+    "/add_category",
+    "/add_type"
+]
+
+admin_delete_cmds = [
+    "/delete_type",
+    "/delete_category",
+    "/delete_recipe"
+]
 
 def correct_author_fields(initial_data):
     """Удаление пустых ключей."""
@@ -62,15 +78,12 @@ def show_result(bot, result, request):
 def clear(data):
     """Обнуление вспомогательного словаря."""
     for elem in data:
-        if elem == "get":
-            data[elem] = True
-        else:
-            data[elem] = None
+        data[elem] = None
 
 
 def is_command(data):
     """Проверка наличия команды в начале сообщения."""
-    for elem in commands:
+    for elem in commands + admin_add_cmds + admin_delete_cmds:
         if data.startswith(elem):
             return True
     return False

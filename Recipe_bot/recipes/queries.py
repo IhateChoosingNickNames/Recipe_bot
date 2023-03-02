@@ -103,16 +103,22 @@ def get_my_recipes(author):
     )
 
 
-def get_categories():
+def get_all_categories():
     """Получение всех категорий."""
     current_session = get_session(engine)
     return current_session.query(Category).order_by(Category.title).all()
 
 
-def get_types():
+def get_all_types():
     """Получение всех типов."""
     current_session = get_session(engine)
     return current_session.query(Type).order_by(Type.title).all()
+
+
+def get_all_recipes():
+    """Получение всех рецептов."""
+    current_session = get_session(engine)
+    return current_session.query(Recipe).order_by(Recipe.title).all()
 
 
 def get_user(data):
@@ -133,4 +139,17 @@ def create_type_or_category(data):
         tmp = Category(title=data["title"])
 
     current_session.add(tmp)
+    current_session.commit()
+
+
+def delete_object(data):
+
+    mapper = {
+        "Type": Type,
+        "Category": Category,
+        "Recipe": Recipe
+    }
+
+    current_session = get_session(engine)
+    current_session.query(mapper[data["to_delete_model"]]).filter_by(title=data["to_delete_title"]).delete()
     current_session.commit()
