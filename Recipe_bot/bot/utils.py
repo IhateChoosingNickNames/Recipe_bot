@@ -98,7 +98,4 @@ def is_admin(bot, request):
     user = get_user(correct_author_fields(data))
     bot.delete_message(request.chat.id, request.message_id)
 
-    if not user.is_admin:
-        return False
-
-    return True
+    return user.is_admin
